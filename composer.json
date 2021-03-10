@@ -1,0 +1,21 @@
+{
+  "name": "ikarus/sps-i2c-gpio-extender",
+  "license": "BSD-3-Clause",
+  "authors": [
+    {
+      "name": "Thomas Abplanalp",
+      "email": "info@tasoft.ch"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Ikarus\\SPS\\I2C\\" : "src"
+    }
+  },
+  "require" : {
+    "php": ">=7.2",
+    "tasoft/php-i2c-extension": "^0.9"
+  },
+  "require-dev": {
+  }
+}
