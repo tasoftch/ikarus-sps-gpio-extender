@@ -202,10 +202,9 @@ class Extender_16GPIO_MCP23017
 	 */
 	public function digitalWrite(int $pins = 0xFFFF, int $values = 0) {
 		$pins = $pins & $this->OUTP;
-		$values |= $this->OUTC & ~$this->DIR & ~$pins;
-
+		$values = ($this->OUTC & ~$pins) | $pins & $values;
 		if($pins & 0xFF) {
-			$this->bus->write(0x12, [ ($values & 0xFF) ^ $this->ACT_LOW ]);
+			$this->bus->write(0x12, [ $w = ($values & 0xFF) ^ $this->ACT_LOW ]);
 		}
 		if($pins & 0xFF00) {
 			$this->bus->write(0x13, [ ($values>>8 & 0xFF) ^ ($this->ACT_LOW>>8) ]);
