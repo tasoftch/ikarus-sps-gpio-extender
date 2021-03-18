@@ -87,6 +87,10 @@ class Extender_16GPIO_MCP23017
 	private $DIR = 0xFFFF;
 	private $ACT_LOW = 0x0;
 
+	const VALUE_LOW = 0;
+	const VALUE_HIGH = 1;
+	const VALUE_ERROR = -1;
+
 	/**
 	 * DAC_MCP4625 constructor.
 	 * @param I2C $bus
@@ -109,8 +113,9 @@ class Extender_16GPIO_MCP23017
 	 * Setup a pinout to work with.
 	 *
 	 * @param array $pinout
+	 * @param bool $updateChip
 	 */
-	public function setupPins(array $pinout) {
+	public function setupPins(array $pinout, bool $updateChip = true) {
 		$pull = 0x0;
 		$int = 0x0;
 		$def = 0x0;
@@ -139,19 +144,21 @@ class Extender_16GPIO_MCP23017
 			}
 		}
 
-		// Set directions: IODIR A => 0x00, B => 0x10
-		$this->bus->write(0x00, [$this->DIR & 0xFF]);
-		$this->bus->write(0x01, [($this->DIR >> 8) & 0xFF]);
+		if($updateChip) {
+			// Set directions: IODIR A => 0x00, B => 0x10
+			$this->bus->write(0x00, [$this->DIR & 0xFF]);
+			$this->bus->write(0x01, [($this->DIR >> 8) & 0xFF]);
 
-		$this->bus->write(0x04, [$int & 0xFF]);
-		$this->bus->write(0x05, [($int >> 8) & 0xFF]);
-		$this->bus->write(0x06, [$def & 0xFF]);
-		$this->bus->write(0x07, [($def >> 8) & 0xFF]);
-		$this->bus->write(0x08, [$defCon & 0xFF]);
-		$this->bus->write(0x09, [($defCon >> 8) & 0xFF]);
+			$this->bus->write(0x04, [$int & 0xFF]);
+			$this->bus->write(0x05, [($int >> 8) & 0xFF]);
+			$this->bus->write(0x06, [$def & 0xFF]);
+			$this->bus->write(0x07, [($def >> 8) & 0xFF]);
+			$this->bus->write(0x08, [$defCon & 0xFF]);
+			$this->bus->write(0x09, [($defCon >> 8) & 0xFF]);
 
-		$this->bus->write(0x0C, [$pull & 0xFF]);
-		$this->bus->write(0x0D, [($pull >> 8) & 0xFF]);
+			$this->bus->write(0x0C, [$pull & 0xFF]);
+			$this->bus->write(0x0D, [($pull >> 8) & 0xFF]);
+		}
 	}
 
 	/**
@@ -195,6 +202,25 @@ class Extender_16GPIO_MCP23017
 	}
 
 	/**
+	 * Reads the state from a single input pin.
+	 *
+	 * @param int $pin
+	 * @return int
+	 */
+	public function digitalReadPin(int $pin): int {
+		$pin = 1<<$pin;
+		if($this->DIR & $pin) {
+			if($pin > 0xFF)
+				$this->bus->writeRegister(0x13);
+			else
+				$this->bus->writeRegister(0x12);
+			$b = $this->bus->readByte() ^ $this->ACT_LOW;
+			return $b & $pin ? static::VALUE_HIGH : static::VALUE_LOW;
+		}
+		return static::VALUE_ERROR;
+	}
+
+	/**
 	 * Writes values to the output pins.
 	 *
 	 * @param int $pins
@@ -210,5 +236,30 @@ class Extender_16GPIO_MCP23017
 			$this->bus->write(0x13, [ ($values>>8 & 0xFF) ^ ($this->ACT_LOW>>8) ]);
 		}
 		$this->OUTC = $values;
+	}
+
+	/**
+	 * Writes to a single pin
+	 *
+	 * @param int $pin
+	 * @param int $value
+	 * @return int
+	 */
+	public function digitalWritePin(int $pin, int $value): int
+	{
+		$pin = 1<<$pin;
+		if($this->OUTP & $pin) {
+			$values = ($this->OUTC & ~$pin) & $this->OUTP; // Capture all other values
+			$values |= $value > static::VALUE_LOW ? $pin : 0; // Add the output option if value is high
+
+			if($pin>0xFF) {
+				$this->bus->write(0x13, [ ($values>>8 & 0xFF) ^ ($this->ACT_LOW>>8) ]);
+			} else {
+				$this->bus->write(0x12, [ $w = ($values & 0xFF) ^ $this->ACT_LOW ]);
+			}
+			$this->OUTC = $values;
+			return $value;
+		}
+		return static::VALUE_ERROR;
 	}
 }
