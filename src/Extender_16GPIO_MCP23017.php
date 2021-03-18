@@ -122,12 +122,12 @@ class Extender_16GPIO_MCP23017
 		$defCon = 0x0;
 
 		foreach($pinout as $pin => $flags) {
-			$this->INP |= 1<<$pin;
-
 			if($flags & static::SETUP_ACTIVE_LOW)
 				$this->ACT_LOW |= 1<<$pin;
 
 			if($flags & static::SETUP_INPUT) {
+				$this->INP |= 1<<$pin;
+
 				if($flags & static::SETUP_PULLUP)
 					$pull |= 1<<$pin;
 				if($flags & static::SETUP_RAISING_INTERRUPT || $flags & static::SETUP_FALLING_INTERRUPT) {
