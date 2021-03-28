@@ -162,6 +162,25 @@ class Extender_16GPIO_MCP23017
 	}
 
 	/**
+	 * Setup a single pin, but only for local usage.
+	 * There must be another instance setting up the whole pinout.
+	 *
+	 * @param int $pin
+	 * @param int $flags
+	 */
+	public function setupPin(int $pin, int $flags) {
+		if($flags & static::SETUP_ACTIVE_LOW)
+			$this->ACT_LOW |= 1<<$pin;
+
+		if($flags & static::SETUP_INPUT) {
+			$this->INP |= 1<<$pin;
+		} elseif($flags & static::SETUP_OUTPUT) {
+			$this->DIR &= ~(1<<$pin);
+			$this->OUTP |= 1<<$pin;
+		}
+	}
+
+	/**
 	 * Helps to mask a bitwise pin selector
 	 *
 	 * @param int ...$pins
