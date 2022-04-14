@@ -281,4 +281,36 @@ class Extender_16GPIO_MCP23017
 		}
 		return static::VALUE_ERROR;
 	}
+
+	/**
+	 * Also writes to the chip but will read the current state directly from chip before writing.
+	 *
+	 * @param int $pin
+	 * @param int $value
+	 * @return int
+	 */
+	public function digitalWritePinSecure(int $pin, int $value): int {
+		$pin = 1<<$pin;
+		if($this->OUTP & $pin) {
+			if($pin>0xFF) {
+				$this->bus->writeRegister(0x13);
+				$values = $this->bus->readByte()<<8;
+				if((($this->ACT_LOW & $pin) && $value == static::VALUE_LOW) || ((~$this->ACT_LOW & $pin) && $value>static::VALUE_LOW))
+					$values |= $pin;
+				else
+					$values &=~$pin;
+				$this->bus->write(0x13, [ ($values>>8) & 0xFF ]);
+			} else {
+				$this->bus->writeRegister(0x12);
+				$values = $vv = $this->bus->readByte();
+				if((($this->ACT_LOW & $pin) && $value == static::VALUE_LOW) || ((~$this->ACT_LOW & $pin) && $value>static::VALUE_LOW))
+					$values |= $pin;
+				else
+					$values &=~$pin;
+
+				$this->bus->write(0x12, [$values & 0xFF]);
+			}
+		}
+		return $value;
+	}
 }
