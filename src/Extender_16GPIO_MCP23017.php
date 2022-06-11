@@ -229,11 +229,15 @@ class Extender_16GPIO_MCP23017
 	public function digitalReadPin(int $pin): int {
 		$pin = 1<<$pin;
 		if($this->DIR & $pin) {
-			if($pin > 0xFF)
+			if($pin > 0xFF) {
 				$this->bus->writeRegister(0x13);
-			else
+				$b = $this->bus->readByte() << 8;
+			}else {
 				$this->bus->writeRegister(0x12);
-			$b = $this->bus->readByte() ^ $this->ACT_LOW;
+				$b = $this->bus->readByte();
+			}
+
+			$b = $b ^ $this->ACT_LOW;
 			return $b & $pin ? static::VALUE_HIGH : static::VALUE_LOW;
 		}
 		return static::VALUE_ERROR;
@@ -270,7 +274,6 @@ class Extender_16GPIO_MCP23017
 		if($this->OUTP & $pin) {
 			$values = ($this->OUTC & ~$pin) & $this->OUTP; // Capture all other values
 			$values |= $value > static::VALUE_LOW ? $pin : 0; // Add the output option if value is high
-
 			if($pin>0xFF) {
 				$this->bus->write(0x13, [ ($values>>8 & 0xFF) ^ ($this->ACT_LOW>>8) ]);
 			} else {
