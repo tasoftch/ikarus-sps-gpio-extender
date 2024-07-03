@@ -14,6 +14,6 @@
   },
   "require" : {
     "php": ">7.2",
-    "tasoft/php-i2c-extension": "^0.9"
+    "tasoft/php-i2c-extension": "^0.9|^8"
   }
 }
